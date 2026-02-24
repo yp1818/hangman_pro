@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block content %}
+<button onclick="document.body.classList.toggle('white-theme')" class="theme-toggle">🌓</button>
+
+<div class="container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 20px;">
+    
+    <div id="game-container" class="card" style="width: 100%; max-width: 750px; padding: 50px; border-radius: 40px; background: var(--card); backdrop-filter: blur(30px);">
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
+            <a href="/dashboard" style="color: #ef4444; text-decoration: none; font-weight: 800;">✖ QUIT GAME</a>
+            <div class="badge" id="level-display">Level {{ game.level if game.level else 1 }}</div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <h2 style="margin: 0; font-size: 2.5rem; color: var(--primary);">{{ game.category }}</h2>
+            <div style="display: flex; gap: 20px; font-size: 1.4rem; font-weight: 800;">
+                <span id="lives-display" style="color: #ef4444;">❤️ {{ game.lives }}</span>
+                <span id="score-display" style="color: #10b981;">💰 {{ game.score }}</span>
+            </div>
+        </div>
+
+        {% if session.get('username', '').lower() == 'virat' %}
+        <div style="margin-bottom: 20px; border: 2px dashed #38bdf8; padding: 15px; border-radius: 20px; text-align: center;">
+            <p style="color: #38bdf8; font-weight: bold; margin-bottom: 10px; font-size: 0.9rem;">🛡️ ADMIN CHEAT PANEL</p>
+            <button type="button" onclick="autoSolve(event)" class="primary-btn" style="background: #a855f7; width: auto; padding: 10px 25px; font-size: 0.9rem;">
+                ⚡ Auto-Solve Level
+            </button>
+        </div>
+        {% endif %}
+
+        <div style="display: flex; align-items: center; gap: 40px; margin-bottom: 40px; flex-wrap: wrap; justify-content: center;">
+            <div id="hangman-box" class="hangman-box mistake-{{ game.max_lives - game.lives }}" style="width: 220px; height: 240px; background: rgba(0,0,0,0.2); border-radius: 25px; position: relative;">
+                <div class="base" style="position: absolute; bottom: 20px; left: 15%; width: 70%; height: 4px; background: #94a3b8;"></div>
+                <div class="upright" style="position: absolute; bottom: 20px; left: 30%; width: 4px; height: 85%; background: #94a3b8;"></div>
+                <div class="beam" style="position: absolute; top: 15px; left: 30%; width: 55%; height: 4px; background: #94a3b8;"></div>
+                <div class="rope" style="position: absolute; top: 15px; right: 15%; width: 2px; height: 35px; background: #d97706;"></div>
+                <div class="part head"></div><div class="part body-line"></div>
+                <div class="part l-arm"></div><div class="part r-arm"></div>
+                <div class="part l-leg"></div><div class="part r-leg"></div>
+            </div>
+
+            <div id="word-display" style="font-size: 3.5rem; letter-spacing: 12px; flex-grow: 1; text-align: center; color: var(--primary); font-weight: 800;">
+                {{ game.display_word() }}
+            </div>
+        </div>
+
+        <div id="keyboard-container">
+            {% if not game.is_over() %}
+            <div class="keyboard" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(45px, 1fr)); gap: 10px;">
+                {% for letter in "abcdefghijklmnopqrstuvwxyz" %}
+                    <button type="button" 
+                            onclick="makeGuess(event, '{{ letter }}')"
+                            id="btn-{{ letter }}"
+                            {% if letter in game.guessed %} disabled {% endif %}
+                            style="padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.1); color: white; cursor: pointer; font-weight: bold;">
+                        {{ letter }}
+                    </button>
+                {% endfor %}
+            </div>
+            {% else %}
+                <div style="text-align: center; margin-top: 30px; padding: 30px; background: rgba(0,0,0,0.2); border-radius: 25px;">
+                    {% if game.lives > 0 %}
+                        <h2 style="color: #10b981; font-size: 2.5rem;">🎉 LEVEL CLEARED!</h2>
+                        <form action="/start" method="POST">
+                            <input type="hidden" name="category" value="{{ game.category }}">
+                            <button type="submit" class="primary-btn" style="width: auto; padding: 15px 50px;">Next Level ➔</button>
+                        </form>
+                    {% else %}
+                        <h2 style="color: #ef4444;">💀 GAME OVER</h2>
+                        <p>Word was: <b style="color: #38bdf8;">{{ game.secret_word }}</b></p>
+                        
+                        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                            <form action="/start" method="POST">
+                                <input type="hidden" name="category" value="{{ game.category }}">
+                                <button type="submit" class="primary-btn" style="background: #10b981; width: auto; padding: 12px 30px;">
+                                    🔄 Try Again
+                                </button>
+                            </form>
+                            
+                            <a href="/dashboard" class="primary-btn" style="text-decoration: none; display: inline-block; padding: 12px 30px; background: rgba(255,255,255,0.1);">
+                                Dashboard
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function autoSolve(event) {
+        if(event) event.preventDefault();
+        fetch('/game', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=auto_win`
+        })
+        .then(() => { window.location.reload(); });
+    }
+
+    function makeGuess(event, letter) {
+        if(event) event.preventDefault();
+        const btn = document.getElementById(`btn-${letter}`);
+        if (!btn || btn.disabled) return;
+        const currentScroll = window.scrollY;
+
+        btn.disabled = true;
+        btn.style.opacity = "0.2";
+
+        fetch('/game', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=guess&letter=${letter}`
+        })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            document.getElementById('word-display').innerHTML = doc.getElementById('word-display').innerHTML;
+            document.getElementById('lives-display').innerHTML = doc.getElementById('lives-display').innerHTML;
+            document.getElementById('score-display').innerHTML = doc.getElementById('score-display').innerHTML;
+            document.getElementById('level-display').innerHTML = doc.getElementById('level-display').innerHTML;
+            document.getElementById('hangman-box').className = doc.getElementById('hangman-box').className;
+            
+            const newKeyboard = doc.getElementById('keyboard-container').innerHTML;
+            if (newKeyboard.includes('CLEARED') || newKeyboard.includes('OVER')) {
+                document.getElementById('keyboard-container').innerHTML = newKeyboard;
+            }
+            window.scrollTo(0, currentScroll);
+        });
+    }
+</script>
+
+<style>
+    .part { position: absolute; background: #fff; display: none; box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+    .head { width: 34px; height: 34px; border-radius: 50%; top: 50px; right: calc(15% - 16px); border: 3px solid #fff; background: transparent; }
+    .body-line { width: 3px; height: 65px; top: 84px; right: 15%; }
+    .l-arm { width: 40px; height: 3px; top: 105px; right: 15%; transform: rotate(30deg); transform-origin: right; }
+    .r-arm { width: 40px; height: 3px; top: 105px; right: calc(15% - 40px); transform: rotate(-30deg); transform-origin: left; }
+    .l-leg { width: 40px; height: 3px; top: 147px; right: 15%; transform: rotate(60deg); transform-origin: right; }
+    .r-leg { width: 40px; height: 3px; top: 147px; right: calc(15% - 40px); transform: rotate(-60deg); transform-origin: left; }
+
+    .mistake-1 .head { display: block; } .mistake-2 .body-line { display: block; }
+    .mistake-3 .l-arm { display: block; } .mistake-4 .r-arm { display: block; }
+    .mistake-5 .l-leg { display: block; } .mistake-6 .r-leg { display: block; }
+</style>
+{% endblock %}
