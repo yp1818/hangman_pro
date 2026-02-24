@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+<style>
+    .victory-container {
+        text-align: center;
+        padding: 50px 20px;
+        animation: fadeIn 1s ease-in;
+    }
+
+    .trophy-icon {
+        font-size: 6rem;
+        margin-bottom: 20px;
+        filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+        animation: bounce 2s infinite;
+    }
+
+    .victory-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border: 2px solid gold;
+        padding: 50px;
+        border-radius: 30px;
+        max-width: 600px;
+        margin: auto;
+        box-shadow: 0 0 50px rgba(255, 215, 0, 0.2);
+    }
+
+    .victory-title {
+        color: gold;
+        font-size: 3rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        margin-bottom: 10px;
+    }
+
+    .victory-msg {
+        font-size: 1.2rem;
+        color: #f8fafc;
+        margin-bottom: 30px;
+        line-height: 1.6;
+    }
+
+    .final-stats {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-bottom: 30px;
+    }
+
+    .stat-box {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 15px 25px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+
+    .stat-val {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: gold;
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+</style>
+
+<div class="victory-container">
+    <div class="victory-card">
+        <div class="trophy-icon">🏆</div>
+        <h1 class="victory-title">Legendary!</h1>
+        <p class="victory-msg">
+            Incredible job, <b>{{ username }}</b>! <br>
+            You have successfully cleared all <b>100 Levels</b> and conquered the world of Hangman Pro.
+        </p>
+
+        <div class="final-stats">
+            <div class="stat-box">
+                <span class="stat-label" style="font-size: 0.8rem; color: #94a3b8;">Final Level</span>
+                <span class="stat-val">100</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label" style="font-size: 0.8rem; color: #94a3b8;">Completions</span>
+                <span class="stat-val">{{ completions }}</span>
+            </div>
+        </div>
+
+        <form action="/restart_game" method="POST" style="margin-bottom: 15px;">
+            <button type="submit" class="primary-btn" style="background: gold; color: black; font-weight: 800; width: 100%;">
+                🔄 Restart Journey (Level 1)
+            </button>
+        </form>
+
+        <a href="/dashboard" class="primary-btn" style="text-decoration: none; display: inline-block; background: transparent; border: 1px solid gold; color: gold; width: 100%;">
+            Go to Dashboard
+        </a>
+    </div>
+</div>
+
+<script>
+    // Page load hote hi phatake phutenge
+    var duration = 5 * 1000;
+    var animationEnd = Date.now() + duration;
+    var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    function randomInRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    var interval = setInterval(function() {
+      var timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      var particleCount = 50 * (timeLeft / duration);
+      confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+      confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+    }, 250);
+</script>
+{% endblock %}
